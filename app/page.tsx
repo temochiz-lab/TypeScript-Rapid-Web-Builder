@@ -1428,6 +1428,17 @@ export default function Home() {
   const rootComponents = getChildren(components, null).filter((component) => component.visible ?? true);
   const rootRects = layoutChildren(null, rootComponents, formWidth, formHeight);
 
+  const togglePreviewMode = () => {
+    setPreviewMode((value) => {
+      const next = !value;
+      if (next) {
+        setActiveTab("form");
+        setSelectedIds([]);
+      }
+      return next;
+    });
+  };
+
   return (
     <main className="ide-shell">
       <header className="ide-menu">
@@ -1442,7 +1453,7 @@ export default function Home() {
           <button onClick={loadSample}>Sample</button>
           <button onClick={exportProject}>Export</button>
           <button onClick={() => importRef.current?.click()}>Import</button>
-          <button className={previewMode ? "mode-toggle design-mode" : "mode-toggle run-mode"} onClick={() => setPreviewMode((value) => !value)}>{previewMode ? "Design" : "Run"}</button>
+          <button className={previewMode ? "mode-toggle design-mode" : "mode-toggle run-mode"} onClick={togglePreviewMode}>{previewMode ? "Design" : "Run"}</button>
           <button onClick={() => setStatus("Deploy is reserved for the later Docker + SSH stage")}>Deploy</button>
           <input
             ref={importRef}

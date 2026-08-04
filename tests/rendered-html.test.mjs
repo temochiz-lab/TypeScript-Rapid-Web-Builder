@@ -63,6 +63,7 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(page, /dockOptions/);
   assert.match(page, /alignOptions/);
   assert.match(page, /mode-toggle/);
+  assert.match(page, /togglePreviewMode/);
   assert.match(page, /createNewForm/);
   assert.match(page, /createNewModel/);
   assert.match(page, /openProjectFile/);
