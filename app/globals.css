@@ -621,7 +621,8 @@ h2 {
   font-size: 12px;
 }
 
-.property-list input {
+.property-list input,
+.property-list select {
   width: 100%;
   min-width: 0;
   height: 28px;

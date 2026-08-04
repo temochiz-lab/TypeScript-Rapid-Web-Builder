@@ -59,6 +59,8 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(page, /layoutChildren/);
   assert.match(page, /DockMode/);
   assert.match(page, /AlignMode/);
+  assert.match(page, /dockOptions/);
+  assert.match(page, /alignOptions/);
   assert.match(page, /mode-toggle/);
   assert.match(page, /createNewForm/);
   assert.match(page, /createNewModel/);
@@ -85,6 +87,7 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(css, /\.mode-toggle\.run-mode/);
   assert.match(css, /\.mode-toggle\.design-mode/);
   assert.match(css, /\.property-list/);
+  assert.match(css, /\.property-list select/);
   assert.match(css, /\.document-pane/);
   assert.match(css, /\.form-workbench/);
   assert.doesNotMatch(page, /SkeletonPreview|codex-preview|react-loading-skeleton/);

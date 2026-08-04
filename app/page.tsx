@@ -6,6 +6,7 @@ type ControlType = "Button" | "Label" | "TextArea" | "Frame" | "Container";
 type ToolType = "Select" | ControlType;
 type DockMode = "None" | "Top" | "Left" | "Right" | "Bottom" | "Fill";
 type AlignMode = "Absolute" | "Vertical" | "Horizontal";
+type InspectorInputType = "text" | "number" | "checkbox" | "select";
 
 type ComponentDef = {
   id: string;
@@ -51,6 +52,8 @@ const DB_PROJECT_KEY = "current";
 const formWidth = 800;
 const formHeight = 600;
 const zoomOptions = ["100", "fit-width", "fit-screen"] as const;
+const dockOptions: DockMode[] = ["None", "Top", "Left", "Right", "Bottom", "Fill"];
+const alignOptions: AlignMode[] = ["Absolute", "Vertical", "Horizontal"];
 type ZoomMode = (typeof zoomOptions)[number];
 
 const defaults: Record<ControlType, Omit<ComponentDef, "id" | "name" | "events">> = {
@@ -1194,7 +1197,7 @@ export default function Home() {
 
   const inspector = useMemo(() => {
     if (!selected) return null;
-    const rows: Array<[string, string | number | boolean | undefined, "text" | "number" | "checkbox"]> = [
+    const rows: Array<[string, string | number | boolean | undefined, InspectorInputType]> = [
       ["Name", selected.name, "text"],
       ["Text", selected.text, "text"],
       ["Left", selected.left, "number"],
@@ -1202,13 +1205,13 @@ export default function Home() {
       ["Width", selected.width, "number"],
       ["Height", selected.height, "number"],
       ["Visible", selected.visible ?? true, "checkbox"],
-      ["Dock", selected.dock ?? "None", "text"],
+      ["Dock", selected.dock ?? "None", "select"],
     ];
     if (selected.type !== "Label" && selected.type !== "Frame") rows.push(["Enabled", selected.enabled ?? true, "checkbox"]);
     if (selected.type === "TextArea") rows.push(["ReadOnly", selected.readOnly ?? false, "checkbox"]);
     if (selected.type === "Frame") rows.push(["Form", selected.frameForm ?? "", "text"]);
     if (selected.type === "Container") {
-      rows.push(["Align", selected.align ?? "Absolute", "text"]);
+      rows.push(["Align", selected.align ?? "Absolute", "select"]);
       rows.push(["Padding", selected.padding ?? 10, "number"]);
       rows.push(["Gap", selected.gap ?? 8, "number"]);
     }
@@ -1620,6 +1623,14 @@ export default function Home() {
                         <span>{property}</span>
                         {inputType === "checkbox" ? (
                           <input type="checkbox" checked={Boolean(value)} onChange={(event) => updateInspector(property, event.target.checked)} />
+                        ) : inputType === "select" ? (
+                          <select value={String(value ?? "")} onChange={(event) => updateInspector(property, event.target.value)}>
+                            {(property === "Dock" ? dockOptions : alignOptions).map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           <input type={inputType} value={String(value ?? "")} onChange={(event) => updateInspector(property, event.target.value)} />
                         )}
