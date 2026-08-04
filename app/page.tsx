@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-type ControlType = "Button" | "Label" | "TextArea";
+type ControlType = "Button" | "Label" | "TextArea" | "Frame";
 type ToolType = "Select" | ControlType;
 
 type ComponentDef = {
@@ -17,6 +17,7 @@ type ComponentDef = {
   enabled?: boolean;
   visible?: boolean;
   readOnly?: boolean;
+  frameForm?: string;
   events: Record<string, string>;
 };
 
@@ -74,11 +75,21 @@ const defaults: Record<ControlType, Omit<ComponentDef, "id" | "name" | "events">
     visible: true,
     readOnly: false,
   },
+  Frame: {
+    type: "Frame",
+    text: "",
+    left: 180,
+    top: 28,
+    width: 560,
+    height: 420,
+    visible: true,
+  },
 };
 
 const initialCode = `// Double-click a Button on the form to create its Click handler.
-// Runtime controls expose Text, Enabled, Visible, and ReadOnly where supported.
+// Runtime controls expose Text, Enabled, Visible, ReadOnly, and Frame.show().
 // Navigate with: await Navigator.go("Form2");
+// Show a form inside a Frame with: await Frame1.show("Form2");
 `;
 
 function createForm(name: string, components: ComponentDef[] = []): FormDef {
@@ -195,7 +206,7 @@ async function writeProjectDraft(project: ProjectDef): Promise<void> {
   });
 }
 
-const tools: ControlType[] = ["Button", "Label", "TextArea"];
+const tools: ControlType[] = ["Button", "Label", "TextArea", "Frame"];
 
 function nextName(type: ControlType, components: ComponentDef[]) {
   const used = new Set(components.filter((item) => item.type === type).map((item) => item.name));
@@ -219,7 +230,7 @@ function createControl(type: ControlType, components: ComponentDef[], left: numb
     ...base,
     id: crypto.randomUUID(),
     name,
-    text: type === "TextArea" ? "" : name,
+    text: type === "TextArea" || type === "Frame" ? "" : name,
     left: clamp(Math.round(left), 0, formWidth - base.width),
     top: clamp(Math.round(top), 0, formHeight - base.height),
     events: type === "Button" ? { click: "" } : {},
@@ -244,6 +255,7 @@ function serializeForm(form: FormDef) {
           enabled: item.enabled,
           visible: item.visible,
           readOnly: item.readOnly,
+          frameForm: item.frameForm,
         },
         events: item.events,
       })),
@@ -506,6 +518,21 @@ export default function Home() {
           set ReadOnly(value: boolean) {
             item.readOnly = Boolean(value);
           },
+          get Form() {
+            return item.frameForm ?? "";
+          },
+          set Form(value: string) {
+            const target = String(value);
+            if (item.type !== "Frame") throw new Error(`${name} is not a Frame`);
+            if (!project.forms.some((form) => form.name === target)) throw new Error(`Form not found: ${target}`);
+            item.frameForm = target;
+          },
+          show: async (formName: string) => {
+            const target = String(formName);
+            if (item.type !== "Frame") throw new Error(`${name} is not a Frame`);
+            if (!project.forms.some((form) => form.name === target)) throw new Error(`Form not found: ${target}`);
+            item.frameForm = target;
+          },
         },
       ]),
     );
@@ -615,10 +642,10 @@ export default function Home() {
       ...defaults.Button,
       id: crypto.randomUUID(),
       name: "Button1",
-      text: "Run",
+      text: "Show Form2",
       left: 32,
       top: 28,
-      width: 112,
+      width: 118,
       height: 34,
       events: { click: "Button1_Click" },
     };
@@ -626,21 +653,22 @@ export default function Home() {
       ...defaults.Label,
       id: crypto.randomUUID(),
       name: "Label1",
-      text: "Result",
+      text: "Left menu",
       left: 32,
       top: 82,
       width: 220,
       height: 26,
       events: {},
     };
-    const textArea: ComponentDef = {
-      ...defaults.TextArea,
+    const frame: ComponentDef = {
+      ...defaults.Frame,
       id: crypto.randomUUID(),
-      name: "TextArea1",
-      left: 32,
-      top: 126,
-      width: 390,
-      height: 142,
+      name: "Frame1",
+      left: 176,
+      top: 28,
+      width: 580,
+      height: 500,
+      frameForm: "Form2",
       events: {},
     };
     const form2Label: ComponentDef = {
@@ -655,21 +683,20 @@ export default function Home() {
       events: {},
     };
     const code = `async function Button1_Click(): Promise<void> {
-  Label1.Text = "Executed";
-  TextArea1.Text = "Hello, TypeScript Rapid Web Builder";
-  await Navigator.go("Form2");
+  Label1.Text = "Form2 loaded";
+  await Frame1.show("Form2");
 }
 `;
     setProject({
       name: "TypeScript Rapid Web Builder",
       activeFormName: "Form1",
       forms: [
-        createForm("Form1", [button, label, textArea]),
+        createForm("Form1", [button, label, frame]),
         createForm("Form2", [form2Label]),
       ],
       codeByForm: {
         Form1: code,
-        Form2: `// Form2.ts\n// Use await Navigator.go("Form1"); to return.\n`,
+        Form2: `// Form2.ts\n// This form is shown inside Frame1.\n`,
       },
     });
     setSelectedIds([button.id]);
@@ -722,6 +749,7 @@ export default function Home() {
           enabled: item.properties?.enabled,
           visible: item.properties?.visible,
           readOnly: item.properties?.readOnly,
+          frameForm: item.properties?.frameForm,
           events: item.events ?? {},
         })),
       }));
@@ -836,8 +864,9 @@ export default function Home() {
       ["Height", selected.height, "number"],
       ["Visible", selected.visible ?? true, "checkbox"],
     ];
-    if (selected.type !== "Label") rows.push(["Enabled", selected.enabled ?? true, "checkbox"]);
+    if (selected.type !== "Label" && selected.type !== "Frame") rows.push(["Enabled", selected.enabled ?? true, "checkbox"]);
     if (selected.type === "TextArea") rows.push(["ReadOnly", selected.readOnly ?? false, "checkbox"]);
+    if (selected.type === "Frame") rows.push(["Form", selected.frameForm ?? "", "text"]);
     if (selected.type === "Button") rows.push(["Click", selected.events.click, "text"]);
     return rows;
   }, [selected]);
@@ -861,6 +890,15 @@ export default function Home() {
       updateComponent(selected.id, { events: { ...selected.events, click: String(value) } });
       return;
     }
+    if (property === "Form") {
+      const frameForm = String(value);
+      if (frameForm && !project.forms.some((form) => form.name === frameForm)) {
+        setStatus(`Form not found: ${frameForm}`);
+        return;
+      }
+      updateComponent(selected.id, { frameForm });
+      return;
+    }
     const key = property.charAt(0).toLowerCase() + property.slice(1);
     if (["left", "top", "width", "height"].includes(key)) {
       const numeric = Number(value);
@@ -875,6 +913,41 @@ export default function Home() {
     updateComponent(selected.id, {
       [key]: value,
     } as Partial<ComponentDef>);
+  };
+
+  const renderFrameContent = (component: ComponentDef) => {
+    const target = project.forms.find((form) => form.name === component.frameForm);
+    if (!target) {
+      return <div className="frame-empty">{component.frameForm ? `Form not found: ${component.frameForm}` : "Set Form to show another screen"}</div>;
+    }
+
+    const contentHeight = Math.max(1, component.height - 24);
+    const scale = Math.min(component.width / target.width, contentHeight / target.height);
+    return (
+      <div className="embedded-form-shell" style={{ width: target.width * scale, height: target.height * scale }}>
+        <div className="embedded-form-surface" style={{ width: target.width, height: target.height, transform: `scale(${scale})` }}>
+          {target.components
+            .filter((item) => item.visible ?? true)
+            .map((item) => (
+              <div
+                className={`embedded-control embedded-${item.type.toLowerCase()}`}
+                key={item.id}
+                style={{
+                  left: item.left,
+                  top: item.top,
+                  width: item.width,
+                  height: item.height,
+                }}
+              >
+                {item.type === "Button" && <button disabled>{item.text}</button>}
+                {item.type === "Label" && <span>{item.text}</span>}
+                {item.type === "TextArea" && <textarea readOnly value={item.text} />}
+                {item.type === "Frame" && <div className="frame-empty">Frame</div>}
+              </div>
+            ))}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -1000,6 +1073,12 @@ export default function Home() {
                       )}
                       {component.type === "Label" && <span>{component.text}</span>}
                       {component.type === "TextArea" && <textarea readOnly={component.readOnly ?? false} disabled={!(component.enabled ?? true)} value={component.text} onChange={(event) => updateComponent(component.id, { text: event.target.value })} />}
+                      {component.type === "Frame" && (
+                        <div className="frame-control">
+                          <div className="frame-title">{component.name}{component.frameForm ? `: ${component.frameForm}` : ""}</div>
+                          <div className="frame-content">{renderFrameContent(component)}</div>
+                        </div>
+                      )}
                       {selectedIds.length === 1 && selectedIds[0] === component.id && !previewMode && (
                         <span
                           className="resize-handle"

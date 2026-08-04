@@ -4,13 +4,13 @@ TypeScript Rapid Web Builder は、VB6、Delphi、C++Builder のようなビジ�
 
 最初の試作版では、小さく確認しやすい開発ループに集中しています。
 
-1. `Form1` に `Button`、`Label`、`TextArea` を配置する。
+1. `Form1` に `Button`、`Label`、`TextArea`、`Frame` を配置する。
 2. `Left`、`Top`、`Width`、`Height` の絶対座標でコントロールを移動・リサイズする。
 3. Properties でコントロールのプロパティを編集する。
 4. Button をダブルクリックして TypeScript のクリックハンドラを生成する。
 5. `Label1.Text` のような実行時コントロールオブジェクトに対して TypeScript を書く。
 6. Forms ウィンドウからフォームを追加する。
-7. Preview を実行し、ボタンをクリックしてフォーム更新や画面遷移を確認する。
+7. Preview を実行し、ボタンをクリックしてフォーム更新、画面遷移、Frame内表示を確認する。
 8. 作業中の内容をブラウザ内に自動保存する。
 
 デプロイは、まず GitHub + Vercel を想定しています。作成したアプリのパッケージ化は後続フェーズで扱います。
@@ -42,7 +42,7 @@ examples/
 ## 主なデータ型
 
 ```ts
-type ControlType = "Button" | "Label" | "TextArea";
+type ControlType = "Button" | "Label" | "TextArea" | "Frame";
 
 type ComponentDef = {
   id: string;
@@ -56,6 +56,7 @@ type ComponentDef = {
   enabled?: boolean;
   visible?: boolean;
   readOnly?: boolean;
+  frameForm?: string;
   events: Record<string, string>;
 };
 
@@ -103,6 +104,20 @@ Designer には次のズームモードがあります。
 
 将来の Container コントロールでは、この絶対座標の土台の上に padding や align を追加する想定です。
 
+## Frameによる部分画面表示
+
+`Frame` は、フォームの中に別フォームを表示するためのレイアウトコンポーネントです。
+
+たとえば `Form1` に左メニューの Button と `Frame1` を配置し、ボタンのクリックハンドラで次のように書くと、画面全体を遷移せずに `Frame1` の中だけを `Form2` に差し替えられます。
+
+```ts
+async function Button1_Click(): Promise<void> {
+  await Frame1.show("Form2");
+}
+```
+
+Properties の `Form` にフォーム名を入れておけば、初期表示するフォームも指定できます。これにより、最近の業務アプリやSPAのような「左メニュー + 右側コンテンツ」型の画面を作れます。
+
 ## イベント生成
 
 `Button` をダブルクリックすると、まだ存在しない場合だけクリックハンドラを生成します。
@@ -130,6 +145,7 @@ TextArea1.Text = "Hello, TypeScript Rapid Web Builder";
 - `Api.post(path, payload)`
 - `Command.run("showDate")`
 - `Navigator.go(formName)`
+- `Frame1.show(formName)`
 
 `Command.run` で許可されているのは `showDate` だけです。任意のシェルコマンド実行は拒否します。
 
