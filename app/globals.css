@@ -379,6 +379,41 @@ h2 {
   text-align: center;
 }
 
+.container-control {
+  display: grid;
+  grid-template-rows: 24px 1fr;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid #6f7f92;
+  background: #edf2f7;
+}
+
+.container-title {
+  overflow: hidden;
+  border-bottom: 1px solid #9aa8b8;
+  padding: 4px 8px;
+  background: linear-gradient(#eef7ff, #cbdced);
+  color: #17202a;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.container-content {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background-color: #f8fafc;
+  background-image:
+    linear-gradient(#e2e8f0 1px, transparent 1px),
+    linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
 .embedded-form-shell {
   position: relative;
 }

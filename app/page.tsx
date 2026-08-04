@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-type ControlType = "Button" | "Label" | "TextArea" | "Frame";
+type ControlType = "Button" | "Label" | "TextArea" | "Frame" | "Container";
 type ToolType = "Select" | ControlType;
+type DockMode = "None" | "Top" | "Left" | "Right" | "Bottom" | "Fill";
+type AlignMode = "Absolute" | "Vertical" | "Horizontal";
 
 type ComponentDef = {
   id: string;
@@ -18,6 +20,11 @@ type ComponentDef = {
   visible?: boolean;
   readOnly?: boolean;
   frameForm?: string;
+  parentId?: string;
+  dock?: DockMode;
+  align?: AlignMode;
+  padding?: number;
+  gap?: number;
   events: Record<string, string>;
 };
 
@@ -84,12 +91,26 @@ const defaults: Record<ControlType, Omit<ComponentDef, "id" | "name" | "events">
     height: 420,
     visible: true,
   },
+  Container: {
+    type: "Container",
+    text: "",
+    left: 20,
+    top: 160,
+    width: 260,
+    height: 220,
+    visible: true,
+    dock: "None",
+    align: "Absolute",
+    padding: 10,
+    gap: 8,
+  },
 };
 
 const initialCode = `// Double-click a Button on the form to create its Click handler.
 // Runtime controls expose Text, Enabled, Visible, ReadOnly, and Frame.show().
 // Navigate with: await Navigator.go("Form2");
 // Show a form inside a Frame with: await Frame1.show("Form2");
+// Build responsive regions with Container Dock/Align/Padding/Gap.
 `;
 
 function createForm(name: string, components: ComponentDef[] = []): FormDef {
@@ -206,7 +227,119 @@ async function writeProjectDraft(project: ProjectDef): Promise<void> {
   });
 }
 
-const tools: ControlType[] = ["Button", "Label", "TextArea", "Frame"];
+const tools: ControlType[] = ["Button", "Label", "TextArea", "Frame", "Container"];
+
+type Rect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+function getChildren(components: ComponentDef[], parentId: string | null) {
+  return components.filter((item) => (item.parentId ?? null) === parentId);
+}
+
+function getContentRect(container: ComponentDef): Rect {
+  const titleHeight = container.type === "Container" ? 24 : 0;
+  return {
+    left: 0,
+    top: titleHeight,
+    width: container.width,
+    height: Math.max(1, container.height - titleHeight),
+  };
+}
+
+function layoutChildren(parent: ComponentDef | null, children: ComponentDef[], width: number, height: number) {
+  const rects = new Map<string, Rect>();
+  const padding = parent?.padding ?? 0;
+  const gap = parent?.gap ?? 0;
+  const align = parent?.align ?? "Absolute";
+
+  if (align === "Vertical") {
+    let y = padding;
+    children.forEach((child) => {
+      const childHeight = child.dock === "Fill" ? Math.max(1, height - y - padding) : child.height;
+      rects.set(child.id, {
+        left: padding,
+        top: y,
+        width: Math.max(1, width - padding * 2),
+        height: childHeight,
+      });
+      y += childHeight + gap;
+    });
+    return rects;
+  }
+
+  if (align === "Horizontal") {
+    let x = padding;
+    children.forEach((child) => {
+      const childWidth = child.dock === "Fill" ? Math.max(1, width - x - padding) : child.width;
+      rects.set(child.id, {
+        left: x,
+        top: padding,
+        width: childWidth,
+        height: Math.max(1, height - padding * 2),
+      });
+      x += childWidth + gap;
+    });
+    return rects;
+  }
+
+  let remaining = {
+    left: padding,
+    top: padding,
+    width: Math.max(1, width - padding * 2),
+    height: Math.max(1, height - padding * 2),
+  };
+
+  children.forEach((child) => {
+    const dock = child.dock ?? "None";
+    if (dock === "Top") {
+      rects.set(child.id, { left: remaining.left, top: remaining.top, width: remaining.width, height: child.height });
+      remaining = { ...remaining, top: remaining.top + child.height + gap, height: Math.max(1, remaining.height - child.height - gap) };
+      return;
+    }
+    if (dock === "Bottom") {
+      rects.set(child.id, { left: remaining.left, top: remaining.top + remaining.height - child.height, width: remaining.width, height: child.height });
+      remaining = { ...remaining, height: Math.max(1, remaining.height - child.height - gap) };
+      return;
+    }
+    if (dock === "Left") {
+      rects.set(child.id, { left: remaining.left, top: remaining.top, width: child.width, height: remaining.height });
+      remaining = { ...remaining, left: remaining.left + child.width + gap, width: Math.max(1, remaining.width - child.width - gap) };
+      return;
+    }
+    if (dock === "Right") {
+      rects.set(child.id, { left: remaining.left + remaining.width - child.width, top: remaining.top, width: child.width, height: remaining.height });
+      remaining = { ...remaining, width: Math.max(1, remaining.width - child.width - gap) };
+      return;
+    }
+    if (dock === "Fill") {
+      rects.set(child.id, { ...remaining });
+      remaining = { ...remaining, width: 1, height: 1 };
+      return;
+    }
+    rects.set(child.id, { left: child.left, top: child.top, width: child.width, height: child.height });
+  });
+
+  return rects;
+}
+
+function collectDescendantIds(components: ComponentDef[], ids: string[]) {
+  const remove = new Set(ids);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    components.forEach((item) => {
+      if (item.parentId && remove.has(item.parentId) && !remove.has(item.id)) {
+        remove.add(item.id);
+        changed = true;
+      }
+    });
+  }
+  return remove;
+}
 
 function nextName(type: ControlType, components: ComponentDef[]) {
   const used = new Set(components.filter((item) => item.type === type).map((item) => item.name));
@@ -223,7 +356,7 @@ function isIdentifier(value: string) {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(value);
 }
 
-function createControl(type: ControlType, components: ComponentDef[], left: number, top: number): ComponentDef {
+function createControl(type: ControlType, components: ComponentDef[], left: number, top: number, parentId?: string, parentWidth = formWidth, parentHeight = formHeight): ComponentDef {
   const base = defaults[type];
   const name = nextName(type, components);
   return {
@@ -231,8 +364,9 @@ function createControl(type: ControlType, components: ComponentDef[], left: numb
     id: crypto.randomUUID(),
     name,
     text: type === "TextArea" || type === "Frame" ? "" : name,
-    left: clamp(Math.round(left), 0, formWidth - base.width),
-    top: clamp(Math.round(top), 0, formHeight - base.height),
+    left: clamp(Math.round(left), 0, Math.max(0, parentWidth - base.width)),
+    top: clamp(Math.round(top), 0, Math.max(0, parentHeight - base.height)),
+    parentId,
     events: type === "Button" ? { click: "" } : {},
   };
 }
@@ -256,6 +390,11 @@ function serializeForm(form: FormDef) {
           visible: item.visible,
           readOnly: item.readOnly,
           frameForm: item.frameForm,
+          parentId: item.parentId,
+          dock: item.dock,
+          align: item.align,
+          padding: item.padding,
+          gap: item.gap,
         },
         events: item.events,
       })),
@@ -409,10 +548,10 @@ export default function Home() {
     );
   }, []);
 
-  const addControl = useCallback((type: ControlType, x: number, y: number) => {
+  const addControl = useCallback((type: ControlType, x: number, y: number, parentId?: string, parentWidth = formWidth, parentHeight = formHeight) => {
     setProject((current) => {
       const form = getActiveForm(current);
-      const component = createControl(type, form.components, x, y);
+      const component = createControl(type, form.components, x, y, parentId, parentWidth, parentHeight);
       setSelectedIds([component.id]);
       setSelectedTool("Select");
       setStatus(`${component.name} placed`);
@@ -638,15 +777,31 @@ export default function Home() {
   };
 
   const loadSample = () => {
+    const container: ComponentDef = {
+      ...defaults.Container,
+      id: crypto.randomUUID(),
+      name: "Container1",
+      text: "",
+      left: 0,
+      top: 0,
+      width: 156,
+      height: formHeight,
+      dock: "Left",
+      align: "Vertical",
+      padding: 12,
+      gap: 10,
+      events: {},
+    };
     const button: ComponentDef = {
       ...defaults.Button,
       id: crypto.randomUUID(),
       name: "Button1",
       text: "Show Form2",
-      left: 32,
-      top: 28,
-      width: 118,
+      left: 0,
+      top: 0,
+      width: 132,
       height: 34,
+      parentId: container.id,
       events: { click: "Button1_Click" },
     };
     const label: ComponentDef = {
@@ -654,10 +809,11 @@ export default function Home() {
       id: crypto.randomUUID(),
       name: "Label1",
       text: "Left menu",
-      left: 32,
-      top: 82,
-      width: 220,
+      left: 0,
+      top: 44,
+      width: 132,
       height: 26,
+      parentId: container.id,
       events: {},
     };
     const frame: ComponentDef = {
@@ -668,6 +824,7 @@ export default function Home() {
       top: 28,
       width: 580,
       height: 500,
+      dock: "Fill",
       frameForm: "Form2",
       events: {},
     };
@@ -691,7 +848,7 @@ export default function Home() {
       name: "TypeScript Rapid Web Builder",
       activeFormName: "Form1",
       forms: [
-        createForm("Form1", [button, label, frame]),
+        createForm("Form1", [container, frame, button, label]),
         createForm("Form2", [form2Label]),
       ],
       codeByForm: {
@@ -750,6 +907,11 @@ export default function Home() {
           visible: item.properties?.visible,
           readOnly: item.properties?.readOnly,
           frameForm: item.properties?.frameForm,
+          parentId: item.properties?.parentId,
+          dock: item.properties?.dock,
+          align: item.properties?.align ?? item.properties?.layout,
+          padding: item.properties?.padding,
+          gap: item.properties?.gap,
           events: item.events ?? {},
         })),
       }));
@@ -776,7 +938,7 @@ export default function Home() {
     setProject((current) =>
       updateActiveForm(current, (form) => ({
         ...form,
-        components: form.components.filter((item) => !selectedIds.includes(item.id)),
+        components: form.components.filter((item) => !collectDescendantIds(form.components, selectedIds).has(item.id)),
       })),
     );
     setSelectedIds([]);
@@ -836,7 +998,7 @@ export default function Home() {
         const bottom = Math.max(selectionBox.startY, currentY);
         skipBlankClickRef.current = right - left > 3 || bottom - top > 3;
         const picked = components
-          .filter((item) => item.left < right && item.left + item.width > left && item.top < bottom && item.top + item.height > top)
+          .filter((item) => !item.parentId && item.left < right && item.left + item.width > left && item.top < bottom && item.top + item.height > top)
           .map((item) => item.id);
         setSelectedIds(picked);
         setStatus(picked.length === 0 ? "Selection cleared" : `${picked.length} selected`);
@@ -863,10 +1025,16 @@ export default function Home() {
       ["Width", selected.width, "number"],
       ["Height", selected.height, "number"],
       ["Visible", selected.visible ?? true, "checkbox"],
+      ["Dock", selected.dock ?? "None", "text"],
     ];
     if (selected.type !== "Label" && selected.type !== "Frame") rows.push(["Enabled", selected.enabled ?? true, "checkbox"]);
     if (selected.type === "TextArea") rows.push(["ReadOnly", selected.readOnly ?? false, "checkbox"]);
     if (selected.type === "Frame") rows.push(["Form", selected.frameForm ?? "", "text"]);
+    if (selected.type === "Container") {
+      rows.push(["Align", selected.align ?? "Absolute", "text"]);
+      rows.push(["Padding", selected.padding ?? 10, "number"]);
+      rows.push(["Gap", selected.gap ?? 8, "number"]);
+    }
     if (selected.type === "Button") rows.push(["Click", selected.events.click, "text"]);
     return rows;
   }, [selected]);
@@ -899,11 +1067,33 @@ export default function Home() {
       updateComponent(selected.id, { frameForm });
       return;
     }
+    if (property === "Dock") {
+      const dock = String(value) as DockMode;
+      if (!["None", "Top", "Left", "Right", "Bottom", "Fill"].includes(dock)) {
+        setStatus("Dock must be None, Top, Left, Right, Bottom, or Fill");
+        return;
+      }
+      updateComponent(selected.id, { dock });
+      return;
+    }
+    if (property === "Align") {
+      const align = String(value) as AlignMode;
+      if (!["Absolute", "Vertical", "Horizontal"].includes(align)) {
+        setStatus("Align must be Absolute, Vertical, or Horizontal");
+        return;
+      }
+      updateComponent(selected.id, { align });
+      return;
+    }
     const key = property.charAt(0).toLowerCase() + property.slice(1);
-    if (["left", "top", "width", "height"].includes(key)) {
+    if (["left", "top", "width", "height", "padding", "gap"].includes(key)) {
       const numeric = Number(value);
       if (!Number.isFinite(numeric)) {
         setStatus(`${property} must be numeric`);
+        return;
+      }
+      if (key === "padding" || key === "gap") {
+        updateComponent(selected.id, { [key]: clamp(Math.round(numeric), 0, 64) } as Partial<ComponentDef>);
         return;
       }
       const max = key === "left" ? formWidth - selected.width : key === "top" ? formHeight - selected.height : key === "width" ? formWidth - selected.left : formHeight - selected.top;
@@ -949,6 +1139,98 @@ export default function Home() {
       </div>
     );
   };
+
+  const renderComponent = (component: ComponentDef, rect: Rect) => {
+    const childComponents = getChildren(components, component.id).filter((item) => item.visible ?? true);
+    const contentRect = getContentRect(component);
+    const childRects = layoutChildren(component, childComponents, contentRect.width, contentRect.height);
+
+    return (
+      <div
+        className={selectedIds.includes(component.id) && !previewMode ? "control selected" : "control"}
+        key={component.id}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (!previewMode) setSelectedIds([component.id]);
+        }}
+        onDoubleClick={() => handleDoubleClick(component)}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+          if (previewMode) return;
+          setSelectedIds([component.id]);
+          if (component.parentId || (component.dock ?? "None") !== "None") return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          setDrag({ id: component.id, dx: (event.clientX - rect.left) / currentZoom, dy: (event.clientY - rect.top) / currentZoom });
+        }}
+        style={{
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        }}
+      >
+        {component.type === "Button" && (
+          <button disabled={!(component.enabled ?? true)} onClick={() => previewMode && runButton(component)}>
+            {component.text}
+          </button>
+        )}
+        {component.type === "Label" && <span>{component.text}</span>}
+        {component.type === "TextArea" && (
+          <textarea
+            readOnly={component.readOnly ?? false}
+            disabled={!(component.enabled ?? true)}
+            value={component.text}
+            onChange={(event) => updateComponent(component.id, { text: event.target.value })}
+          />
+        )}
+        {component.type === "Frame" && (
+          <div className="frame-control">
+            <div className="frame-title">{component.name}{component.frameForm ? `: ${component.frameForm}` : ""}</div>
+            <div className="frame-content">{renderFrameContent(component)}</div>
+          </div>
+        )}
+        {component.type === "Container" && (
+          <div className="container-control">
+            <div className="container-title">{component.name}: {component.align ?? "Absolute"}</div>
+            <div
+              className="container-content"
+              onClick={(event) => {
+                event.stopPropagation();
+                if (previewMode) return;
+                if (selectedTool === "Select") {
+                  setSelectedIds([component.id]);
+                  return;
+                }
+                const rect = event.currentTarget.getBoundingClientRect();
+                addControl(
+                  selectedTool,
+                  (event.clientX - rect.left) / currentZoom,
+                  (event.clientY - rect.top) / currentZoom,
+                  component.id,
+                  contentRect.width,
+                  contentRect.height,
+                );
+              }}
+            >
+              {childComponents.map((child) => renderComponent(child, childRects.get(child.id) ?? { left: child.left, top: child.top, width: child.width, height: child.height }))}
+            </div>
+          </div>
+        )}
+        {selectedIds.length === 1 && selectedIds[0] === component.id && !previewMode && !component.parentId && (component.dock ?? "None") === "None" && (
+          <span
+            className="resize-handle"
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              setResize({ id: component.id, startX: event.clientX, startY: event.clientY, width: component.width, height: component.height });
+            }}
+          />
+        )}
+      </div>
+    );
+  };
+
+  const rootComponents = getChildren(components, null).filter((component) => component.visible ?? true);
+  const rootRects = layoutChildren(null, rootComponents, formWidth, formHeight);
 
   return (
     <main className="ide-shell">
@@ -1042,54 +1324,9 @@ export default function Home() {
                   transform: `scale(${currentZoom})`,
                 }}
               >
-                {components
-                  .filter((component) => component.visible ?? true)
-                  .map((component) => (
-                    <div
-                      className={selectedIds.includes(component.id) && !previewMode ? "control selected" : "control"}
-                      key={component.id}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        if (!previewMode) setSelectedIds([component.id]);
-                      }}
-                      onDoubleClick={() => handleDoubleClick(component)}
-                      onPointerDown={(event) => {
-                        if (previewMode) return;
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        setSelectedIds([component.id]);
-                        setDrag({ id: component.id, dx: (event.clientX - rect.left) / currentZoom, dy: (event.clientY - rect.top) / currentZoom });
-                      }}
-                      style={{
-                        left: component.left,
-                        top: component.top,
-                        width: component.width,
-                        height: component.height,
-                      }}
-                    >
-                      {component.type === "Button" && (
-                        <button disabled={!(component.enabled ?? true)} onClick={() => previewMode && runButton(component)}>
-                          {component.text}
-                        </button>
-                      )}
-                      {component.type === "Label" && <span>{component.text}</span>}
-                      {component.type === "TextArea" && <textarea readOnly={component.readOnly ?? false} disabled={!(component.enabled ?? true)} value={component.text} onChange={(event) => updateComponent(component.id, { text: event.target.value })} />}
-                      {component.type === "Frame" && (
-                        <div className="frame-control">
-                          <div className="frame-title">{component.name}{component.frameForm ? `: ${component.frameForm}` : ""}</div>
-                          <div className="frame-content">{renderFrameContent(component)}</div>
-                        </div>
-                      )}
-                      {selectedIds.length === 1 && selectedIds[0] === component.id && !previewMode && (
-                        <span
-                          className="resize-handle"
-                          onPointerDown={(event) => {
-                            event.stopPropagation();
-                            setResize({ id: component.id, startX: event.clientX, startY: event.clientY, width: component.width, height: component.height });
-                          }}
-                        />
-                      )}
-                    </div>
-                  ))}
+                {rootComponents.map((component) =>
+                  renderComponent(component, rootRects.get(component.id) ?? { left: component.left, top: component.top, width: component.width, height: component.height }),
+                )}
                 {selectionBox && !previewMode && (
                   <div
                     className="selection-marquee"

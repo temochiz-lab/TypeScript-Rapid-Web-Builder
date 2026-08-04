@@ -39,6 +39,7 @@ test("server-renders the TypeScript Rapid Web Builder shell", async () => {
   assert.match(html, /Properties/);
   assert.match(html, /Navigator\.go/);
   assert.match(html, /Frame/);
+  assert.match(html, /Container/);
   assert.match(html, /Fit Screen/);
 });
 
@@ -49,13 +50,16 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /type ControlType = "Button" \| "Label" \| "TextArea" \| "Frame"/);
+  assert.match(page, /type ControlType = "Button" \| "Label" \| "TextArea" \| "Frame" \| "Container"/);
   assert.match(page, /ensureClickHandler/);
   assert.match(page, /serializeForm/);
   assert.match(page, /Command is not allowed/);
   assert.match(page, /Navigator/);
   assert.match(page, /Frame1\.show/);
   assert.match(page, /renderFrameContent/);
+  assert.match(page, /layoutChildren/);
+  assert.match(page, /DockMode/);
+  assert.match(page, /AlignMode/);
   assert.match(page, /createNewForm/);
   assert.match(page, /indexedDB/);
   assert.match(page, /writeProjectDraft/);
@@ -64,6 +68,7 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(css, /\.form-surface/);
   assert.match(css, /\.form-viewport/);
   assert.match(css, /\.frame-control/);
+  assert.match(css, /\.container-control/);
   assert.match(css, /\.property-list/);
   assert.doesNotMatch(page, /SkeletonPreview|codex-preview|react-loading-skeleton/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);

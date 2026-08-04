@@ -4,13 +4,13 @@ TypeScript Rapid Web Builder は、VB6、Delphi、C++Builder のようなビジ�
 
 最初の試作版では、小さく確認しやすい開発ループに集中しています。
 
-1. `Form1` に `Button`、`Label`、`TextArea`、`Frame` を配置する。
+1. `Form1` に `Button`、`Label`、`TextArea`、`Frame`、`Container` を配置する。
 2. `Left`、`Top`、`Width`、`Height` の絶対座標でコントロールを移動・リサイズする。
 3. Properties でコントロールのプロパティを編集する。
 4. Button をダブルクリックして TypeScript のクリックハンドラを生成する。
 5. `Label1.Text` のような実行時コントロールオブジェクトに対して TypeScript を書く。
 6. Forms ウィンドウからフォームを追加する。
-7. Preview を実行し、ボタンをクリックしてフォーム更新、画面遷移、Frame内表示を確認する。
+7. Preview を実行し、ボタンをクリックしてフォーム更新、画面遷移、Frame内表示、Containerレイアウトを確認する。
 8. 作業中の内容をブラウザ内に自動保存する。
 
 デプロイは、まず GitHub + Vercel を想定しています。作成したアプリのパッケージ化は後続フェーズで扱います。
@@ -42,7 +42,9 @@ examples/
 ## 主なデータ型
 
 ```ts
-type ControlType = "Button" | "Label" | "TextArea" | "Frame";
+type ControlType = "Button" | "Label" | "TextArea" | "Frame" | "Container";
+type DockMode = "None" | "Top" | "Left" | "Right" | "Bottom" | "Fill";
+type AlignMode = "Absolute" | "Vertical" | "Horizontal";
 
 type ComponentDef = {
   id: string;
@@ -57,6 +59,11 @@ type ComponentDef = {
   visible?: boolean;
   readOnly?: boolean;
   frameForm?: string;
+  parentId?: string;
+  dock?: DockMode;
+  align?: AlignMode;
+  padding?: number;
+  gap?: number;
   events: Record<string, string>;
 };
 
@@ -102,7 +109,20 @@ Designer には次のズームモードがあります。
 - `Fit Width`
 - `Fit Screen`
 
-将来の Container コントロールでは、この絶対座標の土台の上に padding や align を追加する想定です。
+Container コントロールでは、この絶対座標の土台の上に padding や align を追加できます。
+
+## ContainerとDock/Align
+
+`Container` は、部品をまとめるためのレイアウト用コンポーネントです。
+
+Container の中に Button や Label を配置し、Properties で次の値を調整できます。
+
+- `Dock`: 親のどこに張り付くか。`None`、`Top`、`Left`、`Right`、`Bottom`、`Fill`
+- `Align`: Container内の並べ方。`Absolute`、`Vertical`、`Horizontal`
+- `Padding`: Container内側の余白
+- `Gap`: 子部品同士の間隔
+
+たとえば、`Container1` を `Dock=Left`、`Align=Vertical` にすると、左メニュー領域を作れます。右側に `Frame1` を `Dock=Fill` で置くと、PC解像度が変わっても「左メニュー + 右コンテンツ」の構成を保ちやすくなります。
 
 ## Frameによる部分画面表示
 
@@ -116,7 +136,7 @@ async function Button1_Click(): Promise<void> {
 }
 ```
 
-Properties の `Form` にフォーム名を入れておけば、初期表示するフォームも指定できます。これにより、最近の業務アプリやSPAのような「左メニュー + 右側コンテンツ」型の画面を作れます。
+Properties の `Form` にフォーム名を入れておけば、初期表示するフォームも指定できます。`Container` と組み合わせることで、最近の業務アプリやSPAのような「左メニュー + 右側コンテンツ」型の画面を作れます。
 
 ## イベント生成
 
