@@ -651,16 +651,18 @@ export default function Home() {
     }
     if (selectedTool === "Select") {
       setSelectedIds([]);
-      return;
     }
-    const point = getFormPoint(event.clientX, event.clientY);
-    if (point) addControl(selectedTool, point.x, point.y);
   };
 
   const handleFormPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.target !== event.currentTarget || previewMode || selectedTool !== "Select") return;
+    if (event.target !== event.currentTarget || previewMode) return;
     const point = getFormPoint(event.clientX, event.clientY);
     if (!point) return;
+    if (selectedTool !== "Select") {
+      skipBlankClickRef.current = true;
+      addControl(selectedTool, point.x, point.y);
+      return;
+    }
     setSelectionBox({ startX: point.x, startY: point.y, currentX: point.x, currentY: point.y });
     setSelectedIds([]);
   };
@@ -1347,7 +1349,6 @@ export default function Home() {
         onPointerDown={(event) => {
           event.stopPropagation();
           if (previewMode) return;
-          event.currentTarget.setPointerCapture(event.pointerId);
           setSelectedIds([component.id]);
           if (component.parentId || (component.dock ?? "None") !== "None") return;
           const rect = event.currentTarget.getBoundingClientRect();

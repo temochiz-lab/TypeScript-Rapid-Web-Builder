@@ -78,6 +78,7 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(page, /Api/);
   assert.match(page, /isEditableElement/);
   assert.match(page, /Backspace/);
+  assert.match(page, /skipBlankClickRef\.current = true/);
   assert.match(css, /\.form-surface/);
   assert.match(css, /\.form-viewport/);
   assert.match(css, /\.frame-control/);
