@@ -776,6 +776,14 @@ export default function Home() {
     setStatus(`${name} opened`);
   };
 
+  const openProjectFile = (formName: string, tab: "code" | "json") => {
+    setProject((current) => ({ ...current, activeFormName: formName }));
+    setSelectedIds([]);
+    setPreviewMode(false);
+    setActiveTab(tab);
+    setStatus(`${formName}.${tab === "code" ? "ts" : "json"} opened`);
+  };
+
   const loadSample = () => {
     const container: ComponentDef = {
       ...defaults.Container,
@@ -1293,6 +1301,30 @@ export default function Home() {
                 >
                   {form.name}
                 </button>
+              ))}
+            </div>
+          </section>
+          <section className="file-list-window">
+            <div className="file-list-title">
+              <span>Files</span>
+            </div>
+            <div className="file-list">
+              {project.forms.map((form) => (
+                <div className="file-group" key={form.name}>
+                  <div className="file-folder">{form.name}</div>
+                  <button
+                    className={form.name === activeForm.name && activeTab === "code" ? "file-list-item active" : "file-list-item"}
+                    onClick={() => openProjectFile(form.name, "code")}
+                  >
+                    {form.name}.ts
+                  </button>
+                  <button
+                    className={form.name === activeForm.name && activeTab === "json" ? "file-list-item active" : "file-list-item"}
+                    onClick={() => openProjectFile(form.name, "json")}
+                  >
+                    {form.name}.json
+                  </button>
+                </div>
               ))}
             </div>
           </section>

@@ -10,8 +10,9 @@ TypeScript Rapid Web Builder は、VB6、Delphi、C++Builder のようなビジ�
 4. Button をダブルクリックして TypeScript のクリックハンドラを生成する。
 5. `Label1.Text` のような実行時コントロールオブジェクトに対して TypeScript を書く。
 6. Forms ウィンドウからフォームを追加する。
-7. Preview を実行し、ボタンをクリックしてフォーム更新、画面遷移、Frame内表示、Containerレイアウトを確認する。
-8. 作業中の内容をブラウザ内に自動保存する。
+7. Files ウィンドウから `Form1.ts` や `Form1.json` を開く。
+8. Preview を実行し、ボタンをクリックしてフォーム更新、画面遷移、Frame内表示、Containerレイアウトを確認する。
+9. 作業中の内容をブラウザ内に自動保存する。
 
 デプロイは、まず GitHub + Vercel を想定しています。作成したアプリのパッケージ化は後続フェーズで扱います。
 
@@ -83,6 +84,8 @@ type ProjectDef = {
 ## フォームJSON
 
 アクティブなフォームの JSON タブでは、Git の差分で追いやすい整形済み JSON を表示します。
+
+左ペインの Files ウィンドウには、フォームごとの `.ts` と `.json` が表示されます。クリックすると対象フォームを開き、コードタブまたはJSONタブへ切り替わります。
 
 Export では、次の情報を含むプロジェクトJSONを書き出します。
 

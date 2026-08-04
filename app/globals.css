@@ -144,6 +144,7 @@ h2 {
 
 .toolbox {
   border-right: 1px solid var(--border);
+  overflow: auto;
 }
 
 .inspector {
@@ -210,6 +211,12 @@ h2 {
   background: #eef3f8;
 }
 
+.file-list-window {
+  margin-top: 14px;
+  border: 1px solid #9aa8b8;
+  background: #eef3f8;
+}
+
 .form-list-title {
   display: flex;
   align-items: center;
@@ -217,6 +224,17 @@ h2 {
   min-height: 32px;
   border-bottom: 1px solid #9aa8b8;
   padding: 4px 6px 4px 9px;
+  background: linear-gradient(#ffffff, #dce4ee);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.file-list-title {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  border-bottom: 1px solid #9aa8b8;
+  padding: 4px 9px;
   background: linear-gradient(#ffffff, #dce4ee);
   font-size: 13px;
   font-weight: 700;
@@ -235,6 +253,29 @@ h2 {
   padding: 8px;
 }
 
+.file-list {
+  display: grid;
+  gap: 8px;
+  max-height: 190px;
+  overflow: auto;
+  padding: 8px;
+}
+
+.file-group {
+  display: grid;
+  gap: 3px;
+}
+
+.file-folder {
+  overflow: hidden;
+  padding: 2px 6px;
+  color: #506070;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .form-list-item {
   width: 100%;
   height: 30px;
@@ -243,6 +284,28 @@ h2 {
 }
 
 .form-list-item.active {
+  border-color: var(--accent-dark);
+  background: #cfe0ff;
+  color: #0f2f73;
+  font-weight: 700;
+}
+
+.file-list-item {
+  width: 100%;
+  height: 26px;
+  border-color: transparent;
+  background: transparent;
+  padding: 0 8px 0 18px;
+  text-align: left;
+  font-size: 12px;
+}
+
+.file-list-item:hover {
+  border-color: #aab7c7;
+  background: #ffffff;
+}
+
+.file-list-item.active {
   border-color: var(--accent-dark);
   background: #cfe0ff;
   color: #0f2f73;
