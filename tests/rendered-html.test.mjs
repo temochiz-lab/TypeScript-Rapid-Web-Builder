@@ -37,7 +37,6 @@ test("server-renders the TypeScript Rapid Web Builder shell", async () => {
   assert.match(html, /Files/);
   assert.match(html, /Form1/);
   assert.match(html, /Properties/);
-  assert.match(html, /Navigator\.go/);
   assert.match(html, /Frame/);
   assert.match(html, /Container/);
   assert.match(html, /Fit Screen/);
@@ -70,6 +69,7 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(page, /initialModelCode/);
   assert.match(page, /normalizeDocs/);
   assert.match(page, /openDocFile/);
+  assert.match(page, /activeTab === "form"/);
   assert.match(page, /indexedDB/);
   assert.match(page, /writeProjectDraft/);
   assert.match(page, /fit-screen/);
@@ -85,6 +85,8 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(css, /\.mode-toggle\.run-mode/);
   assert.match(css, /\.mode-toggle\.design-mode/);
   assert.match(css, /\.property-list/);
+  assert.match(css, /\.document-pane/);
+  assert.match(css, /\.form-workbench/);
   assert.doesNotMatch(page, /SkeletonPreview|codex-preview|react-loading-skeleton/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });

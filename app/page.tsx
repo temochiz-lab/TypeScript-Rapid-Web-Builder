@@ -508,7 +508,7 @@ export default function Home() {
   const [drag, setDrag] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [resize, setResize] = useState<{ id: string; startX: number; startY: number; width: number; height: number } | null>(null);
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
-  const [activeTab, setActiveTab] = useState<"code" | "json" | "model" | "doc">("code");
+  const [activeTab, setActiveTab] = useState<"form" | "code" | "json" | "model" | "doc">("form");
   const [activeModelName, setActiveModelName] = useState("models_global.ts");
   const [activeDocName, setActiveDocName] = useState("Form1.ts.md");
   const [activeLeftTab, setActiveLeftTab] = useState<"tools" | "forms" | "files">("tools");
@@ -678,7 +678,7 @@ export default function Home() {
         [activeForm.name]: nextCode,
       },
     }));
-    setActiveTab("code");
+    setActiveTab("form");
     focusHandler(result.handlerName, nextCode);
     setStatus(result.created ? `${result.handlerName} generated` : `${result.handlerName} selected`);
   };
@@ -807,13 +807,14 @@ export default function Home() {
     setSelectedIds([]);
     setActiveModelName(draftModels["models_global.ts"] ? "models_global.ts" : Object.keys(draftModels)[0]);
     setActiveDocName("Form1.ts.md");
+    setActiveTab("form");
     setStatus("Project opened");
   };
 
   const newProject = () => {
     setProject(createInitialProject());
     setSelectedIds([]);
-    setActiveTab("code");
+    setActiveTab("form");
     setActiveModelName("models_global.ts");
     setActiveDocName("Form1.ts.md");
     setActiveLeftTab("tools");
@@ -829,7 +830,7 @@ export default function Home() {
       const name = `Form${index}`;
       setSelectedIds([]);
       setSelectedTool("Select");
-      setActiveTab("code");
+      setActiveTab("form");
       setPreviewMode(false);
       setStatus(`${name} created`);
       return {
@@ -879,6 +880,7 @@ export default function Home() {
     setProject((current) => ({ ...current, activeFormName: name }));
     setSelectedIds([]);
     setPreviewMode(false);
+    setActiveTab("form");
     setStatus(`${name} opened`);
   };
 
@@ -1549,118 +1551,126 @@ export default function Home() {
           )}
         </aside>
 
-        <section className="designer-pane">
-          <div className="pane-title">
-            <span>{activeForm.name}</span>
-            <div className="designer-controls">
-              <span>{previewMode ? "Runtime preview" : "Designer"}</span>
-              <select value={zoomMode} onChange={(event) => setZoomMode(event.target.value as ZoomMode)}>
-                <option value="100">100%</option>
-                <option value="fit-width">Fit Width</option>
-                <option value="fit-screen">Fit Screen</option>
-              </select>
-              <span>{Math.round(currentZoom * 100)}%</span>
-            </div>
+        <section className="document-pane">
+          <div className="tabs document-tabs">
+            <button className={activeTab === "form" ? "active" : ""} onClick={() => setActiveTab("form")}>{activeForm.name}</button>
+            {activeTab === "code" && <button className="active" onClick={() => setActiveTab("code")}>{activeForm.name}.ts</button>}
+            {activeTab === "json" && <button className="active" onClick={() => setActiveTab("json")}>{activeForm.name}.json</button>}
+            {activeTab === "model" && <button className="active" onClick={() => setActiveTab("model")}>{activeModelName}</button>}
+            {activeTab === "doc" && <button className="active" onClick={() => setActiveTab("doc")}>{activeDocName}</button>}
+            <span>{status}</span>
           </div>
-          <div className="form-viewport" ref={designerViewportRef}>
-            <div className="form-scale-shell" style={{ width: formWidth * currentZoom, height: formHeight * currentZoom }}>
-              <div
-                className={previewMode ? "form-surface preview" : "form-surface"}
-                ref={formRef}
-                onClick={handleFormClick}
-                onPointerDown={handleFormPointerDown}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={handleDrop}
-                style={{
-                  transform: `scale(${currentZoom})`,
-                }}
-              >
-                {rootComponents.map((component) =>
-                  renderComponent(component, rootRects.get(component.id) ?? { left: component.left, top: component.top, width: component.width, height: component.height }),
-                )}
-                {selectionBox && !previewMode && (
-                  <div
-                    className="selection-marquee"
-                    style={{
-                      left: Math.min(selectionBox.startX, selectionBox.currentX),
-                      top: Math.min(selectionBox.startY, selectionBox.currentY),
-                      width: Math.abs(selectionBox.currentX - selectionBox.startX),
-                      height: Math.abs(selectionBox.currentY - selectionBox.startY),
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <aside className="inspector">
-          <h2>Properties</h2>
-          {!selected && selectedIds.length === 0 && <p className="empty-state">Select a control on Form1.</p>}
-          {!selected && selectedIds.length > 1 && <p className="empty-state">{selectedIds.length} controls selected.</p>}
-          {selected && (
-            <div className="property-list">
-              <p className="selected-name">{selected.type}: {selected.name}</p>
-              {inspector?.map(([property, value, inputType]) => (
-                <label key={property}>
-                  <span>{property}</span>
-                  {inputType === "checkbox" ? (
-                    <input type="checkbox" checked={Boolean(value)} onChange={(event) => updateInspector(property, event.target.checked)} />
-                  ) : (
-                    <input type={inputType} value={String(value ?? "")} onChange={(event) => updateInspector(property, event.target.value)} />
-                  )}
-                </label>
-              ))}
+          {activeTab === "form" ? (
+            <div className="form-workbench">
+              <section className="designer-pane">
+                <div className="pane-title">
+                  <span>{activeForm.name}</span>
+                  <div className="designer-controls">
+                    <span>{previewMode ? "Runtime preview" : "Designer"}</span>
+                    <select value={zoomMode} onChange={(event) => setZoomMode(event.target.value as ZoomMode)}>
+                      <option value="100">100%</option>
+                      <option value="fit-width">Fit Width</option>
+                      <option value="fit-screen">Fit Screen</option>
+                    </select>
+                    <span>{Math.round(currentZoom * 100)}%</span>
+                  </div>
+                </div>
+                <div className="form-viewport" ref={designerViewportRef}>
+                  <div className="form-scale-shell" style={{ width: formWidth * currentZoom, height: formHeight * currentZoom }}>
+                    <div
+                      className={previewMode ? "form-surface preview" : "form-surface"}
+                      ref={formRef}
+                      onClick={handleFormClick}
+                      onPointerDown={handleFormPointerDown}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={handleDrop}
+                      style={{
+                        transform: `scale(${currentZoom})`,
+                      }}
+                    >
+                      {rootComponents.map((component) =>
+                        renderComponent(component, rootRects.get(component.id) ?? { left: component.left, top: component.top, width: component.width, height: component.height }),
+                      )}
+                      {selectionBox && !previewMode && (
+                        <div
+                          className="selection-marquee"
+                          style={{
+                            left: Math.min(selectionBox.startX, selectionBox.currentX),
+                            top: Math.min(selectionBox.startY, selectionBox.currentY),
+                            width: Math.abs(selectionBox.currentX - selectionBox.startX),
+                            height: Math.abs(selectionBox.currentY - selectionBox.startY),
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <aside className="inspector">
+                <h2>Properties</h2>
+                {!selected && selectedIds.length === 0 && <p className="empty-state">Select a control on {activeForm.name}.</p>}
+                {!selected && selectedIds.length > 1 && <p className="empty-state">{selectedIds.length} controls selected.</p>}
+                {selected && (
+                  <div className="property-list">
+                    <p className="selected-name">{selected.type}: {selected.name}</p>
+                    {inspector?.map(([property, value, inputType]) => (
+                      <label key={property}>
+                        <span>{property}</span>
+                        {inputType === "checkbox" ? (
+                          <input type="checkbox" checked={Boolean(value)} onChange={(event) => updateInspector(property, event.target.checked)} />
+                        ) : (
+                          <input type={inputType} value={String(value ?? "")} onChange={(event) => updateInspector(property, event.target.value)} />
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </aside>
+            </div>
+          ) : (
+            <div className="file-editor">
+              {activeTab === "code" || activeTab === "model" || activeTab === "doc" ? (
+                <textarea
+                  className="code-editor"
+                  ref={codeEditorRef}
+                  spellCheck={false}
+                  value={activeTab === "model" ? activeModelCode : activeTab === "doc" ? activeDocCode : activeCode}
+                  onChange={(event) =>
+                    setProject((current) =>
+                      activeTab === "model"
+                        ? {
+                            ...current,
+                            models: {
+                              ...getModels(current),
+                              [activeModelName]: event.target.value,
+                            },
+                          }
+                        : activeTab === "doc"
+                          ? {
+                              ...current,
+                              docs: {
+                                ...normalizeDocs(current, current),
+                                [activeDocName]: event.target.value,
+                              },
+                            }
+                        : {
+                            ...current,
+                            codeByForm: {
+                              ...current.codeByForm,
+                              [getActiveForm(current).name]: event.target.value,
+                            },
+                          },
+                    )
+                  }
+                />
+              ) : (
+                <pre className="json-view">{serializeForm(activeForm)}</pre>
+              )}
             </div>
           )}
-        </aside>
-      </section>
-
-      <section className="editor-pane">
-        <div className="tabs">
-          <button className={activeTab === "code" ? "active" : ""} onClick={() => setActiveTab("code")}>{activeForm.name}.ts</button>
-          <button className={activeTab === "json" ? "active" : ""} onClick={() => setActiveTab("json")}>{activeForm.name}.json</button>
-          {activeTab === "model" && <button className="active" onClick={() => setActiveTab("model")}>{activeModelName}</button>}
-          {activeTab === "doc" && <button className="active" onClick={() => setActiveTab("doc")}>{activeDocName}</button>}
-          <span>{status}</span>
-        </div>
-        {activeTab === "code" || activeTab === "model" || activeTab === "doc" ? (
-          <textarea
-            className="code-editor"
-            ref={codeEditorRef}
-            spellCheck={false}
-            value={activeTab === "model" ? activeModelCode : activeTab === "doc" ? activeDocCode : activeCode}
-            onChange={(event) =>
-              setProject((current) =>
-                activeTab === "model"
-                  ? {
-                      ...current,
-                      models: {
-                        ...getModels(current),
-                        [activeModelName]: event.target.value,
-                      },
-                    }
-                  : activeTab === "doc"
-                    ? {
-                        ...current,
-                        docs: {
-                          ...normalizeDocs(current, current),
-                          [activeDocName]: event.target.value,
-                        },
-                      }
-                  : {
-                      ...current,
-                      codeByForm: {
-                        ...current.codeByForm,
-                        [getActiveForm(current).name]: event.target.value,
-                      },
-                    },
-              )
-            }
-          />
-        ) : (
-          <pre className="json-view">{serializeForm(activeForm)}</pre>
-        )}
+        </section>
       </section>
     </main>
   );

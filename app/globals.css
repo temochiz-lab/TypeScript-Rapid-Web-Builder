@@ -59,7 +59,7 @@ button:disabled {
 
 .ide-shell {
   display: grid;
-  grid-template-rows: auto minmax(420px, 1fr) minmax(210px, 32vh);
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -130,7 +130,7 @@ h2 {
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: 178px minmax(360px, 1fr) 286px;
+  grid-template-columns: 178px minmax(0, 1fr);
   min-height: 0;
   border-bottom: 1px solid #9caabc;
 }
@@ -353,6 +353,7 @@ h2 {
   display: grid;
   grid-template-rows: 34px 1fr;
   min-width: 0;
+  min-height: 0;
   overflow: auto;
   padding: 14px 16px;
   background: #cfd7e2;
@@ -636,11 +637,23 @@ h2 {
   justify-self: start;
 }
 
-.editor-pane {
+.document-pane {
   display: grid;
   grid-template-rows: 36px 1fr;
   min-height: 0;
   background: #111827;
+}
+
+.form-workbench {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) 286px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.file-editor {
+  min-width: 0;
+  min-height: 0;
 }
 
 .tabs {

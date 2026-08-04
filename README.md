@@ -91,6 +91,8 @@ type ProjectDef = {
 
 左ペインは `Toolbox`、`Forms`、`Files` のタブに分かれています。画面部品を置くときは `Toolbox`、フォームを切り替えるときは `Forms`、コードやJSONやModelを開くときは `Files` を使います。
 
+中央領域はドキュメントタブです。`Form1` タブでは Designer と Properties を1セットで表示し、`Form1.ts`、`Form1.json`、`models_global.ts`、各 `.md` などのファイルは同じ領域で切り替えて編集します。下ペインを使わないため、小さい画面でもフォーム領域を広く使えます。
+
 各ファイルには、対応する `.md` メモファイルも自動生成されます。
 
 ```text
