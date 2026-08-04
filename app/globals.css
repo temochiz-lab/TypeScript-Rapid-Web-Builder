@@ -147,6 +147,31 @@ h2 {
   overflow: auto;
 }
 
+.left-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin-bottom: 12px;
+}
+
+.left-tabs button {
+  min-width: 0;
+  height: 30px;
+  padding: 0 4px;
+  font-size: 12px;
+}
+
+.left-tabs button.active {
+  border-color: var(--accent-dark);
+  background: linear-gradient(#dfeaff, #bdd0f8);
+  color: #0f2f73;
+  font-weight: 700;
+}
+
+.left-tab-panel {
+  min-width: 0;
+}
+
 .inspector {
   border-left: 1px solid var(--border);
 }
@@ -206,13 +231,11 @@ h2 {
 }
 
 .form-list-window {
-  margin-top: 18px;
   border: 1px solid #9aa8b8;
   background: #eef3f8;
 }
 
 .file-list-window {
-  margin-top: 14px;
   border: 1px solid #9aa8b8;
   background: #eef3f8;
 }
@@ -232,15 +255,17 @@ h2 {
 .file-list-title {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   min-height: 32px;
   border-bottom: 1px solid #9aa8b8;
-  padding: 4px 9px;
+  padding: 4px 6px 4px 9px;
   background: linear-gradient(#ffffff, #dce4ee);
   font-size: 13px;
   font-weight: 700;
 }
 
-.form-list-title button {
+.form-list-title button,
+.file-list-title button {
   height: 24px;
   padding: 0 8px;
   font-size: 12px;
@@ -256,7 +281,7 @@ h2 {
 .file-list {
   display: grid;
   gap: 8px;
-  max-height: 190px;
+  max-height: calc(100vh - 190px);
   overflow: auto;
   padding: 8px;
 }

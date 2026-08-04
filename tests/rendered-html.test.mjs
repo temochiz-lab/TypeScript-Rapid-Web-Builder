@@ -35,7 +35,6 @@ test("server-renders the TypeScript Rapid Web Builder shell", async () => {
   assert.match(html, /Toolbox/);
   assert.match(html, /Forms/);
   assert.match(html, /Files/);
-  assert.match(html, /newForm/);
   assert.match(html, /Form1/);
   assert.match(html, /Properties/);
   assert.match(html, /Navigator\.go/);
@@ -63,7 +62,11 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(page, /AlignMode/);
   assert.match(page, /mode-toggle/);
   assert.match(page, /createNewForm/);
+  assert.match(page, /createNewModel/);
   assert.match(page, /openProjectFile/);
+  assert.match(page, /openModelFile/);
+  assert.match(page, /models_global\.ts/);
+  assert.match(page, /initialModelCode/);
   assert.match(page, /indexedDB/);
   assert.match(page, /writeProjectDraft/);
   assert.match(page, /fit-screen/);
@@ -73,6 +76,7 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(css, /\.frame-control/);
   assert.match(css, /\.container-control/);
   assert.match(css, /\.file-list-window/);
+  assert.match(css, /\.left-tabs/);
   assert.match(css, /\.mode-toggle\.run-mode/);
   assert.match(css, /\.mode-toggle\.design-mode/);
   assert.match(css, /\.property-list/);

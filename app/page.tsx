@@ -40,6 +40,7 @@ type ProjectDef = {
   activeFormName: string;
   forms: FormDef[];
   codeByForm: Record<string, string>;
+  models: Record<string, string>;
 };
 
 const STORAGE_KEY = "typescript-rapid-web-builder-project";
@@ -113,6 +114,15 @@ const initialCode = `// Double-click a Button on the form to create its Click ha
 // Build responsive regions with Container Dock/Align/Padding/Gap.
 `;
 
+const initialModelCode = `const AppModel = {
+  title: "TypeScript Rapid Web Builder",
+
+  async status() {
+    return await Api.get("/status");
+  },
+};
+`;
+
 function createForm(name: string, components: ComponentDef[] = []): FormDef {
   return {
     name,
@@ -130,6 +140,9 @@ function createInitialProject(): ProjectDef {
     codeByForm: {
       Form1: initialCode,
     },
+    models: {
+      "models_global.ts": initialModelCode,
+    },
   };
 }
 
@@ -141,6 +154,14 @@ function getActiveForm(project: ProjectDef) {
 
 function getActiveCode(project: ProjectDef) {
   return project.codeByForm[getActiveForm(project).name] ?? initialCode;
+}
+
+function getModels(project: ProjectDef) {
+  return Object.keys(project.models ?? {}).length > 0 ? project.models : { "models_global.ts": initialModelCode };
+}
+
+function normalizeModels(raw: any) {
+  return Object.keys(raw?.models ?? {}).length > 0 ? raw.models : { "models_global.ts": initialModelCode };
 }
 
 function updateActiveForm(project: ProjectDef, updater: (form: FormDef) => FormDef): ProjectDef {
@@ -158,6 +179,7 @@ function normalizeProject(raw: any): ProjectDef {
       activeFormName: raw.activeFormName ?? raw.forms[0]?.name ?? "Form1",
       forms: raw.forms.length > 0 ? raw.forms : [createForm("Form1")],
       codeByForm: raw.codeByForm ?? { Form1: raw.code ?? initialCode },
+      models: normalizeModels(raw),
     };
   }
 
@@ -176,6 +198,7 @@ function normalizeProject(raw: any): ProjectDef {
     codeByForm: {
       [form.name ?? "Form1"]: raw?.code ?? initialCode,
     },
+    models: normalizeModels(raw),
   };
 }
 
@@ -448,7 +471,9 @@ export default function Home() {
   const [drag, setDrag] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const [resize, setResize] = useState<{ id: string; startX: number; startY: number; width: number; height: number } | null>(null);
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
-  const [activeTab, setActiveTab] = useState<"code" | "json">("code");
+  const [activeTab, setActiveTab] = useState<"code" | "json" | "model">("code");
+  const [activeModelName, setActiveModelName] = useState("models_global.ts");
+  const [activeLeftTab, setActiveLeftTab] = useState<"tools" | "forms" | "files">("tools");
   const [previewMode, setPreviewMode] = useState(false);
   const [zoomMode, setZoomMode] = useState<ZoomMode>("100");
   const [fitZoom, setFitZoom] = useState(1);
@@ -456,6 +481,8 @@ export default function Home() {
 
   const activeForm = getActiveForm(project);
   const activeCode = getActiveCode(project);
+  const models = getModels(project);
+  const activeModelCode = models[activeModelName] ?? models["models_global.ts"] ?? initialModelCode;
   const components = activeForm.components;
   const selected = selectedIds.length === 1 ? components.find((item) => item.id === selectedIds[0]) ?? null : null;
   const currentZoom = zoomMode === "100" ? 1 : fitZoom;
@@ -679,7 +706,8 @@ export default function Home() {
     try {
       let nextFormName: string | null = null;
       const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-      await new AsyncFunction(...Object.keys(runtime), "Api", "Command", "Navigator", body)(
+      const modelCode = Object.values(models).join("\n\n");
+      await new AsyncFunction(...Object.keys(runtime), "Api", "Command", "Navigator", `${modelCode}\n\n${body}`)(
         ...Object.values(runtime),
         {
           get: async (path: string) => ({
@@ -734,14 +762,19 @@ export default function Home() {
       setStatus("No saved project found");
       return;
     }
+    const draftModels = getModels(draft);
     setProject(draft);
     setSelectedIds([]);
+    setActiveModelName(draftModels["models_global.ts"] ? "models_global.ts" : Object.keys(draftModels)[0]);
     setStatus("Project opened");
   };
 
   const newProject = () => {
     setProject(createInitialProject());
     setSelectedIds([]);
+    setActiveTab("code");
+    setActiveModelName("models_global.ts");
+    setActiveLeftTab("tools");
     setPreviewMode(false);
     setStatus("New project created");
   };
@@ -769,6 +802,28 @@ export default function Home() {
     });
   };
 
+  const createNewModel = () => {
+    setProject((current) => {
+      const currentModels = getModels(current);
+      let index = 1;
+      while (currentModels[`models_model${index}.ts`]) index += 1;
+      const name = `models_model${index}.ts`;
+      setActiveModelName(name);
+      setSelectedIds([]);
+      setPreviewMode(false);
+      setActiveTab("model");
+      setActiveLeftTab("files");
+      setStatus(`${name} created`);
+      return {
+        ...current,
+        models: {
+          ...currentModels,
+          [name]: `const Model${index} = {\n  async list() {\n    return await Api.get(\"/${name.replace(/^models_|\\.ts$/g, "")}\");\n  },\n};\n`,
+        },
+      };
+    });
+  };
+
   const switchForm = (name: string) => {
     setProject((current) => ({ ...current, activeFormName: name }));
     setSelectedIds([]);
@@ -782,6 +837,14 @@ export default function Home() {
     setPreviewMode(false);
     setActiveTab(tab);
     setStatus(`${formName}.${tab === "code" ? "ts" : "json"} opened`);
+  };
+
+  const openModelFile = (modelName: string) => {
+    setActiveModelName(modelName);
+    setSelectedIds([]);
+    setPreviewMode(false);
+    setActiveTab("model");
+    setStatus(`${modelName} opened`);
   };
 
   const loadSample = () => {
@@ -848,7 +911,8 @@ export default function Home() {
       events: {},
     };
     const code = `async function Button1_Click(): Promise<void> {
-  Label1.Text = "Form2 loaded";
+  const status = await AppModel.status();
+  Label1.Text = status.message;
   await Frame1.show("Form2");
 }
 `;
@@ -863,10 +927,14 @@ export default function Home() {
         Form1: code,
         Form2: `// Form2.ts\n// This form is shown inside Frame1.\n`,
       },
+      models: {
+        "models_global.ts": initialModelCode,
+      },
     });
     setSelectedIds([button.id]);
     setSelectedTool("Select");
     setActiveTab("code");
+    setActiveModelName("models_global.ts");
     setPreviewMode(false);
     focusHandler("Button1_Click", code);
     setStatus("Sample project loaded");
@@ -878,7 +946,12 @@ export default function Home() {
         projectName: project.name,
         activeFormName: project.activeFormName,
         forms: project.forms.map((form) => JSON.parse(serializeForm(form))),
-        files: Object.fromEntries(project.forms.map((form) => [`src/client/forms/${form.name}.ts`, project.codeByForm[form.name] ?? initialCode])),
+        models,
+        files: {
+          ...Object.fromEntries(Object.entries(models).map(([name, code]) => [name, code])),
+          ...Object.fromEntries(Object.entries(models).map(([name, code]) => [`src/models/${name.replace(/^models_|\\.ts$/g, "")}.ts`, code])),
+          ...Object.fromEntries(project.forms.map((form) => [`src/client/forms/${form.name}.ts`, project.codeByForm[form.name] ?? initialCode])),
+        },
       },
       null,
       2,
@@ -926,13 +999,24 @@ export default function Home() {
       const codeByForm = Object.fromEntries(
         importedForms.map((form) => [form.name, payload.files?.[`src/client/forms/${form.name}.ts`] ?? payload.codeByForm?.[form.name] ?? payload.code ?? initialCode]),
       );
+      const importedModels =
+        payload.models ??
+        Object.fromEntries(
+          Object.entries(payload.files ?? {})
+            .filter(([name]) => name.startsWith("models_") && name.endsWith(".ts"))
+            .map(([name, code]) => [name, code]),
+        );
+      const normalizedImportedModels = Object.keys(importedModels).length > 0 ? importedModels : { "models_global.ts": initialModelCode };
       setProject({
         name: payload.projectName ?? "TypeScript Rapid Web Builder",
         activeFormName: payload.activeFormName ?? importedForms[0]?.name ?? "Form1",
         forms: importedForms.length > 0 ? importedForms : [createForm("Form1")],
         codeByForm,
+        models: normalizedImportedModels,
       });
       setSelectedIds(importedForms[0]?.components[0]?.id ? [importedForms[0].components[0].id] : []);
+      setActiveModelName(normalizedImportedModels["models_global.ts"] ? "models_global.ts" : Object.keys(normalizedImportedModels)[0]);
+      setActiveTab("code");
       setStatus("Project JSON imported");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Import failed");
@@ -1268,66 +1352,95 @@ export default function Home() {
 
       <section className="workspace-grid">
         <aside className="toolbox">
-          <h2>Toolbox</h2>
-          <button
-            className={selectedTool === "Select" ? "tool active cursor-tool" : "tool cursor-tool"}
-            onClick={() => setSelectedTool("Select")}
-          >
-            <span className="cursor-icon" />
-            Cursor
-          </button>
-          {tools.map((tool) => (
-            <button
-              className={selectedTool === tool ? "tool active" : "tool"}
-              draggable
-              key={tool}
-              onClick={() => setSelectedTool(tool)}
-              onDragStart={(event) => event.dataTransfer.setData("control", tool)}
-            >
-              {tool}
-            </button>
-          ))}
-          <section className="form-list-window">
-            <div className="form-list-title">
-              <span>Forms</span>
-              <button onClick={createNewForm}>newForm</button>
-            </div>
-            <div className="form-list">
-              {project.forms.map((form) => (
+          <div className="left-tabs">
+            <button className={activeLeftTab === "tools" ? "active" : ""} onClick={() => setActiveLeftTab("tools")}>Toolbox</button>
+            <button className={activeLeftTab === "forms" ? "active" : ""} onClick={() => setActiveLeftTab("forms")}>Forms</button>
+            <button className={activeLeftTab === "files" ? "active" : ""} onClick={() => setActiveLeftTab("files")}>Files</button>
+          </div>
+
+          {activeLeftTab === "tools" && (
+            <section className="left-tab-panel">
+              <h2>Toolbox</h2>
+              <button
+                className={selectedTool === "Select" ? "tool active cursor-tool" : "tool cursor-tool"}
+                onClick={() => setSelectedTool("Select")}
+              >
+                <span className="cursor-icon" />
+                Cursor
+              </button>
+              {tools.map((tool) => (
                 <button
-                  className={form.name === activeForm.name ? "form-list-item active" : "form-list-item"}
-                  key={form.name}
-                  onClick={() => switchForm(form.name)}
+                  className={selectedTool === tool ? "tool active" : "tool"}
+                  draggable
+                  key={tool}
+                  onClick={() => setSelectedTool(tool)}
+                  onDragStart={(event) => event.dataTransfer.setData("control", tool)}
                 >
-                  {form.name}
+                  {tool}
                 </button>
               ))}
-            </div>
-          </section>
-          <section className="file-list-window">
-            <div className="file-list-title">
-              <span>Files</span>
-            </div>
-            <div className="file-list">
-              {project.forms.map((form) => (
-                <div className="file-group" key={form.name}>
-                  <div className="file-folder">{form.name}</div>
+            </section>
+          )}
+
+          {activeLeftTab === "forms" && (
+            <section className="left-tab-panel form-list-window">
+              <div className="form-list-title">
+                <span>Forms</span>
+                <button onClick={createNewForm}>newForm</button>
+              </div>
+              <div className="form-list">
+                {project.forms.map((form) => (
                   <button
-                    className={form.name === activeForm.name && activeTab === "code" ? "file-list-item active" : "file-list-item"}
-                    onClick={() => openProjectFile(form.name, "code")}
+                    className={form.name === activeForm.name ? "form-list-item active" : "form-list-item"}
+                    key={form.name}
+                    onClick={() => switchForm(form.name)}
                   >
-                    {form.name}.ts
+                    {form.name}
                   </button>
-                  <button
-                    className={form.name === activeForm.name && activeTab === "json" ? "file-list-item active" : "file-list-item"}
-                    onClick={() => openProjectFile(form.name, "json")}
-                  >
-                    {form.name}.json
-                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {activeLeftTab === "files" && (
+            <section className="left-tab-panel file-list-window">
+              <div className="file-list-title">
+                <span>Files</span>
+                <button onClick={createNewModel}>newModel</button>
+              </div>
+              <div className="file-list">
+                <div className="file-group">
+                  <div className="file-folder">Models</div>
+                  {Object.keys(models).map((modelName) => (
+                    <button
+                      className={modelName === activeModelName && activeTab === "model" ? "file-list-item active" : "file-list-item"}
+                      key={modelName}
+                      onClick={() => openModelFile(modelName)}
+                    >
+                      {modelName}
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </section>
+                {project.forms.map((form) => (
+                  <div className="file-group" key={form.name}>
+                    <div className="file-folder">{form.name}</div>
+                    <button
+                      className={form.name === activeForm.name && activeTab === "code" ? "file-list-item active" : "file-list-item"}
+                      onClick={() => openProjectFile(form.name, "code")}
+                    >
+                      {form.name}.ts
+                    </button>
+                    <button
+                      className={form.name === activeForm.name && activeTab === "json" ? "file-list-item active" : "file-list-item"}
+                      onClick={() => openProjectFile(form.name, "json")}
+                    >
+                      {form.name}.json
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </aside>
 
         <section className="designer-pane">
@@ -1401,22 +1514,33 @@ export default function Home() {
         <div className="tabs">
           <button className={activeTab === "code" ? "active" : ""} onClick={() => setActiveTab("code")}>{activeForm.name}.ts</button>
           <button className={activeTab === "json" ? "active" : ""} onClick={() => setActiveTab("json")}>{activeForm.name}.json</button>
+          {activeTab === "model" && <button className="active" onClick={() => setActiveTab("model")}>{activeModelName}</button>}
           <span>{status}</span>
         </div>
-        {activeTab === "code" ? (
+        {activeTab === "code" || activeTab === "model" ? (
           <textarea
             className="code-editor"
             ref={codeEditorRef}
             spellCheck={false}
-            value={activeCode}
+            value={activeTab === "model" ? activeModelCode : activeCode}
             onChange={(event) =>
-              setProject((current) => ({
-                ...current,
-                codeByForm: {
-                  ...current.codeByForm,
-                  [getActiveForm(current).name]: event.target.value,
-                },
-              }))
+              setProject((current) =>
+                activeTab === "model"
+                  ? {
+                      ...current,
+                      models: {
+                        ...getModels(current),
+                        [activeModelName]: event.target.value,
+                      },
+                    }
+                  : {
+                      ...current,
+                      codeByForm: {
+                        ...current.codeByForm,
+                        [getActiveForm(current).name]: event.target.value,
+                      },
+                    },
+              )
             }
           />
         ) : (

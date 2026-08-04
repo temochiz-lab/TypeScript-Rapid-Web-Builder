@@ -78,6 +78,7 @@ type ProjectDef = {
     components: ComponentDef[];
   }>;
   codeByForm: Record<string, string>;
+  models: Record<string, string>;
 };
 ```
 
@@ -86,6 +87,35 @@ type ProjectDef = {
 アクティブなフォームの JSON タブでは、Git の差分で追いやすい整形済み JSON を表示します。
 
 左ペインの Files ウィンドウには、フォームごとの `.ts` と `.json` が表示されます。クリックすると対象フォームを開き、コードタブまたはJSONタブへ切り替わります。
+
+左ペインは `Toolbox`、`Forms`、`Files` のタブに分かれています。画面部品を置くときは `Toolbox`、フォームを切り替えるときは `Forms`、コードやJSONやModelを開くときは `Files` を使います。
+
+## Modelファイル
+
+新規プロジェクトには、デフォルトで `models_global.ts` が作成されます。
+
+`models_global.ts` は、アプリ全体で共有するModelを書く場所です。Filesタブから開いて編集できます。
+
+```ts
+const AppModel = {
+  title: "TypeScript Rapid Web Builder",
+
+  async status() {
+    return await Api.get("/status");
+  },
+};
+```
+
+機能ごとのModelは、Filesタブの `newModel` から `models_model1.ts` のように追加できます。将来的な出力時には、IDE上の `models_global.ts` を `src/models/global.ts` のような通常のTypeScript構成へ変換できます。
+
+フォーム側のクリックハンドラからは、Modelをそのまま呼び出せます。
+
+```ts
+async function Button1_Click(): Promise<void> {
+  const status = await AppModel.status();
+  Label1.Text = status.message;
+}
+```
 
 Export では、次の情報を含むプロジェクトJSONを書き出します。
 
