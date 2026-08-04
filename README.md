@@ -79,6 +79,7 @@ type ProjectDef = {
   }>;
   codeByForm: Record<string, string>;
   models: Record<string, string>;
+  docs: Record<string, string>;
 };
 ```
 
@@ -89,6 +90,19 @@ type ProjectDef = {
 左ペインの Files ウィンドウには、フォームごとの `.ts` と `.json` が表示されます。クリックすると対象フォームを開き、コードタブまたはJSONタブへ切り替わります。
 
 左ペインは `Toolbox`、`Forms`、`Files` のタブに分かれています。画面部品を置くときは `Toolbox`、フォームを切り替えるときは `Forms`、コードやJSONやModelを開くときは `Files` を使います。
+
+各ファイルには、対応する `.md` メモファイルも自動生成されます。
+
+```text
+models_global.ts
+models_global.ts.md
+Form1.ts
+Form1.ts.md
+Form1.json
+Form1.json.md
+```
+
+`.md` には設計意図、注意点、TODO、AIに読ませたい補足などを自由に書けます。コードコメントを増やしすぎずに、後から人間やAIが解析しやすい手掛かりを残すための場所です。
 
 ## Modelファイル
 

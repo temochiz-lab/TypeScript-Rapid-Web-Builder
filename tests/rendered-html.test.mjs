@@ -66,7 +66,10 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(page, /openProjectFile/);
   assert.match(page, /openModelFile/);
   assert.match(page, /models_global\.ts/);
+  assert.match(page, /models_global\.ts\.md/);
   assert.match(page, /initialModelCode/);
+  assert.match(page, /normalizeDocs/);
+  assert.match(page, /openDocFile/);
   assert.match(page, /indexedDB/);
   assert.match(page, /writeProjectDraft/);
   assert.match(page, /fit-screen/);
@@ -76,6 +79,8 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(css, /\.frame-control/);
   assert.match(css, /\.container-control/);
   assert.match(css, /\.file-list-window/);
+  assert.match(css, /overflow-wrap: anywhere/);
+  assert.match(css, /\.doc-file/);
   assert.match(css, /\.left-tabs/);
   assert.match(css, /\.mode-toggle\.run-mode/);
   assert.match(css, /\.mode-toggle\.design-mode/);
