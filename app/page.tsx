@@ -419,6 +419,15 @@ function isIdentifier(value: string) {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(value);
 }
 
+function isEditableElement(element: Element | null) {
+  return (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement ||
+    (element instanceof HTMLElement && element.isContentEditable)
+  );
+}
+
 function createControl(type: ControlType, components: ComponentDef[], left: number, top: number, parentId?: string, parentWidth = formWidth, parentHeight = formHeight): ComponentDef {
   const base = defaults[type];
   const name = nextName(type, components);
@@ -1127,7 +1136,8 @@ export default function Home() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Delete" && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+      if ((event.key === "Delete" || event.key === "Backspace") && !isEditableElement(document.activeElement)) {
+        event.preventDefault();
         deleteSelected();
       }
     };
@@ -1337,6 +1347,7 @@ export default function Home() {
         onPointerDown={(event) => {
           event.stopPropagation();
           if (previewMode) return;
+          event.currentTarget.setPointerCapture(event.pointerId);
           setSelectedIds([component.id]);
           if (component.parentId || (component.dock ?? "None") !== "None") return;
           const rect = event.currentTarget.getBoundingClientRect();

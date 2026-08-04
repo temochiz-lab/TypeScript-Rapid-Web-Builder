@@ -76,6 +76,8 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(page, /writeProjectDraft/);
   assert.match(page, /fit-screen/);
   assert.match(page, /Api/);
+  assert.match(page, /isEditableElement/);
+  assert.match(page, /Backspace/);
   assert.match(css, /\.form-surface/);
   assert.match(css, /\.form-viewport/);
   assert.match(css, /\.frame-control/);
@@ -90,6 +92,8 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(css, /\.property-list select/);
   assert.match(css, /\.document-pane/);
   assert.match(css, /\.form-workbench/);
+  assert.match(css, /pointer-events: none/);
+  assert.match(css, /cursor: grab/);
   assert.doesNotMatch(page, /SkeletonPreview|codex-preview|react-loading-skeleton/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });

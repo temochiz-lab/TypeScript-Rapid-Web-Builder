@@ -426,11 +426,18 @@ h2 {
   min-width: 24px;
   min-height: 20px;
   user-select: none;
+  cursor: grab;
+  touch-action: none;
 }
 
 .control.selected {
   outline: 1px solid var(--accent);
   outline-offset: 2px;
+}
+
+.form-surface:not(.preview) .control button,
+.form-surface:not(.preview) .control textarea {
+  pointer-events: none;
 }
 
 .control button,
