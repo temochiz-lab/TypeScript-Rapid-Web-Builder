@@ -1349,11 +1349,19 @@ export default function Home() {
           event.stopPropagation();
           if (!previewMode) setSelectedIds([component.id]);
         }}
-        onDoubleClick={() => handleDoubleClick(component)}
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          handleDoubleClick(component);
+        }}
         onPointerDown={(event) => {
           event.stopPropagation();
           if (previewMode) return;
           setSelectedIds([component.id]);
+          if (component.type === "Button" && event.detail >= 2) {
+            setDrag(null);
+            handleDoubleClick(component);
+            return;
+          }
           if (component.parentId || (component.dock ?? "None") !== "None") return;
           const rect = event.currentTarget.getBoundingClientRect();
           setDrag({ id: component.id, dx: (event.clientX - rect.left) / currentZoom, dy: (event.clientY - rect.top) / currentZoom });
