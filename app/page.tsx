@@ -552,14 +552,18 @@ export default function Home() {
   );
 
   const focusHandler = useCallback((handlerName: string, code: string) => {
-    requestAnimationFrame(() => {
+    const focus = (remainingAttempts: number) => {
       const editor = codeEditorRef.current;
-      if (!editor) return;
+      if (!editor) {
+        if (remainingAttempts > 0) requestAnimationFrame(() => focus(remainingAttempts - 1));
+        return;
+      }
       const index = code.indexOf(`async function ${handlerName}`);
       if (index < 0) return;
       editor.focus();
       editor.setSelectionRange(index, index);
-    });
+    };
+    requestAnimationFrame(() => focus(2));
   }, []);
 
   const recalculateFitZoom = useCallback(() => {
@@ -692,7 +696,7 @@ export default function Home() {
         [activeForm.name]: nextCode,
       },
     }));
-    setActiveTab("form");
+    setActiveTab("code");
     focusHandler(result.handlerName, nextCode);
     setStatus(result.created ? `${result.handlerName} generated` : `${result.handlerName} selected`);
   };

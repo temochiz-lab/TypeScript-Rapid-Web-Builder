@@ -51,6 +51,7 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
 
   assert.match(page, /type ControlType = "Button" \| "Label" \| "TextArea" \| "Frame" \| "Container"/);
   assert.match(page, /ensureClickHandler/);
+  assert.match(page, /setActiveTab\("code"\)/);
   assert.match(page, /serializeForm/);
   assert.match(page, /Command is not allowed/);
   assert.match(page, /Navigator/);
