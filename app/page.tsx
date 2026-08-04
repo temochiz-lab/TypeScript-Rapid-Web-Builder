@@ -1246,7 +1246,7 @@ export default function Home() {
           <button onClick={loadSample}>Sample</button>
           <button onClick={exportProject}>Export</button>
           <button onClick={() => importRef.current?.click()}>Import</button>
-          <button onClick={() => setPreviewMode((value) => !value)}>{previewMode ? "Design" : "Run"}</button>
+          <button className={previewMode ? "mode-toggle design-mode" : "mode-toggle run-mode"} onClick={() => setPreviewMode((value) => !value)}>{previewMode ? "Design" : "Run"}</button>
           <button onClick={() => setStatus("Deploy is reserved for the later Docker + SSH stage")}>Deploy</button>
           <input
             ref={importRef}

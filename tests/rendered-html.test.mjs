@@ -60,6 +60,7 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(page, /layoutChildren/);
   assert.match(page, /DockMode/);
   assert.match(page, /AlignMode/);
+  assert.match(page, /mode-toggle/);
   assert.match(page, /createNewForm/);
   assert.match(page, /indexedDB/);
   assert.match(page, /writeProjectDraft/);
@@ -69,6 +70,8 @@ test("keeps the prototype focused on the requested minimum surface", async () =>
   assert.match(css, /\.form-viewport/);
   assert.match(css, /\.frame-control/);
   assert.match(css, /\.container-control/);
+  assert.match(css, /\.mode-toggle\.run-mode/);
+  assert.match(css, /\.mode-toggle\.design-mode/);
   assert.match(css, /\.property-list/);
   assert.doesNotMatch(page, /SkeletonPreview|codex-preview|react-loading-skeleton/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
