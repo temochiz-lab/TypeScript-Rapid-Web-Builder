@@ -1,33 +1,33 @@
 # TypeScript Rapid Web Builder
 
-Browser-based prototype of a Visual TypeScript IDE inspired by VB6, Delphi, and C++Builder.
+TypeScript Rapid Web Builder は、VB6、Delphi、C++Builder のようなビジュアル開発体験を、ブラウザ上で TypeScript 向けに再構成する試作 IDE です。
 
-The first prototype focuses on a small, verifiable loop:
+最初の試作版では、小さく確認しやすい開発ループに集中しています。
 
-1. Place `Button`, `Label`, and `TextArea` on `Form1`.
-2. Move and resize controls with absolute `Left`, `Top`, `Width`, and `Height`.
-3. Edit properties in the inspector.
-4. Double-click a button to generate a TypeScript click handler.
-5. Write TypeScript against runtime control objects such as `Label1.Text`.
-6. Add another form from the Forms window.
-7. Run the preview and click the button to update the form or navigate.
-8. Keep work-in-progress saved automatically in the browser.
+1. `Form1` に `Button`、`Label`、`TextArea` を配置する。
+2. `Left`、`Top`、`Width`、`Height` の絶対座標でコントロールを移動・リサイズする。
+3. Properties でコントロールのプロパティを編集する。
+4. Button をダブルクリックして TypeScript のクリックハンドラを生成する。
+5. `Label1.Text` のような実行時コントロールオブジェクトに対して TypeScript を書く。
+6. Forms ウィンドウからフォームを追加する。
+7. Preview を実行し、ボタンをクリックしてフォーム更新や画面遷移を確認する。
+8. 作業中の内容をブラウザ内に自動保存する。
 
-Deploy is intentionally left as a later Docker + SSH stage.
+デプロイは、まず GitHub + Vercel を想定しています。作成したアプリのパッケージ化は後続フェーズで扱います。
 
-## Adopted Structure
+## 現在の構成
 
 ```text
 app/
-  page.tsx        Visual designer, form list, property inspector, code editor, runtime preview
-  globals.css    IDE layout and control styling
-  layout.tsx     App metadata
+  page.tsx        ビジュアルデザイナ、フォーム一覧、プロパティ、コードエディタ、実行プレビュー
+  globals.css    IDEレイアウトとコントロールのスタイル
+  layout.tsx     アプリのメタデータ
 tests/
   rendered-html.test.mjs
 package.json
 ```
 
-This keeps the prototype small while leaving room to split the same concepts into future packages:
+試作版では構成を小さく保っています。将来的には、同じ概念を次のようなパッケージに分割できます。
 
 ```text
 packages/
@@ -39,7 +39,7 @@ examples/
   SampleApp/
 ```
 
-## Main Data Types
+## 主なデータ型
 
 ```ts
 type ControlType = "Button" | "Label" | "TextArea";
@@ -72,36 +72,40 @@ type ProjectDef = {
 };
 ```
 
-## Form JSON
+## フォームJSON
 
-The active form's JSON tab shows formatted JSON suitable for Git diffs. Export writes a project JSON bundle containing:
+アクティブなフォームの JSON タブでは、Git の差分で追いやすい整形済み JSON を表示します。
 
-- `forms`: the screen definitions
-- `files["src/client/forms/Form1.ts"]`: per-form user TypeScript code
+Export では、次の情報を含むプロジェクトJSONを書き出します。
 
-Import accepts that bundle shape, a single `form`, or a plain form JSON object with `components`.
+- `forms`: 画面定義
+- `files["src/client/forms/Form1.ts"]`: フォームごとのユーザーTypeScriptコード
 
-## Work-In-Progress Save
+Import は、プロジェクトJSON、単一の `form`、または `components` を持つ素のフォームJSONを受け付けます。
 
-The IDE autosaves the current project to browser IndexedDB after edits. On the next launch, the draft is restored automatically, so local work survives reloads while the prototype is still browser-only.
+## 作業中保存
 
-The `Save` and `Open` buttons use the same browser draft store. Packaging, downloadable project bundles, and Git/Vercel publishing are later stages.
+IDE上の作業内容は、編集後にブラウザの IndexedDB へ自動保存されます。次回起動時やリロード後にはドラフトが自動復元されるため、ブラウザだけで動いている試作段階でも作業を継続できます。
 
-## PC Layout And Form Scaling
+`Save` と `Open` ボタンも同じブラウザ内ドラフト保存を使います。ダウンロード可能なプロジェクトバンドル、アプリのパッケージ化、Git/Vercel 連携は後続フェーズです。
 
-The IDE shell is responsive for PC resolutions: the toolbox, designer, properties panel, code editor, and preview resize with the browser window.
+## PCレイアウトとフォーム拡大縮小
 
-The form itself stays an absolute-positioned design surface, currently `800 x 600`, so `Left`, `Top`, `Width`, and `Height` remain stable. The designer has zoom modes:
+IDE全体はPC解像度に合わせて伸縮します。Toolbox、Designer、Properties、Code Editor、Preview はブラウザウィンドウに合わせてサイズが変わります。
+
+一方で、フォーム自体は現在 `800 x 600` の絶対座標デザイン面として扱います。そのため、`Left`、`Top`、`Width`、`Height` の値は安定します。
+
+Designer には次のズームモードがあります。
 
 - `100%`
 - `Fit Width`
 - `Fit Screen`
 
-Future container controls can add padding and alignment inside the form without changing this absolute-coordinate foundation.
+将来の Container コントロールでは、この絶対座標の土台の上に padding や align を追加する想定です。
 
-## Event Generation
+## イベント生成
 
-Double-clicking a `Button` creates the missing click handler only when it does not already exist:
+`Button` をダブルクリックすると、まだ存在しない場合だけクリックハンドラを生成します。
 
 ```ts
 async function Button1_Click(): Promise<void> {
@@ -109,33 +113,41 @@ async function Button1_Click(): Promise<void> {
 }
 ```
 
-Existing handlers are preserved and the editor cursor moves to the function.
+既存のハンドラは保持され、エディタのカーソルだけが対象の関数へ移動します。
 
-## Runtime Preview
+## 実行プレビュー
 
-Run mode evaluates the selected button handler with runtime objects:
+Run モードでは、選択したボタンのハンドラを実行時オブジェクトとともに評価します。
 
 ```ts
 Label1.Text = "Executed";
 TextArea1.Text = "Hello, TypeScript Rapid Web Builder";
 ```
 
-The prototype also exposes:
+試作版では、次のAPIも利用できます。
 
 - `Api.get(path)`
 - `Api.post(path, payload)`
 - `Command.run("showDate")`
 - `Navigator.go(formName)`
 
-Only `showDate` is allowed for `Command.run`; arbitrary shell commands are rejected.
+`Command.run` で許可されているのは `showDate` だけです。任意のシェルコマンド実行は拒否します。
 
-Use this to move from `Form1` to `Form2`:
+`Form1` から `Form2` へ移動するコード例です。
 
 ```ts
 await Navigator.go("Form2");
 ```
 
-## Local Preview
+通常は、次のようにボタンのクリックハンドラ内に書きます。
+
+```ts
+async function Button1_Click(): Promise<void> {
+  await Navigator.go("Form2");
+}
+```
+
+## ローカルプレビュー
 
 ```bash
 pnpm install
@@ -143,4 +155,4 @@ pnpm run dev
 pnpm run test
 ```
 
-On this Windows workspace, the Codex-bundled Node path must be available in `PATH` when running scripts directly.
+この Windows ワークスペースで Codex から直接スクリプトを実行する場合は、Codex同梱の Node.js のパスを `PATH` に通す必要があります。
